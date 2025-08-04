@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+  <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-400">
     <!-- Header Section -->
     <div class="flex justify-between items-center mb-4">
       <h6 class="text-lg font-semibold text-gray-900 mb-0">All Employees</h6>
