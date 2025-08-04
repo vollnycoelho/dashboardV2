@@ -154,7 +154,7 @@
                   class="w-7 h-7 rounded-full border-2 border-white object-cover"
                 />
                 <img 
-                  src="https://images.unsplash.com/photo-1494790108755-2616b612b786?w=28&h=28&fit=crop&crop=face" 
+                  src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=28&h=28&fit=crop&crop=face" 
                   alt="User" 
                   class="w-7 h-7 rounded-full border-2 border-white object-cover"
                 />
