@@ -6,55 +6,32 @@
     </div>
     
     <div class="flex items-center space-x-6">
-      <!-- Circular Progress -->
+      <!-- amCharts Circular Progress -->
       <div class="relative">
-        <div class="w-20 h-20">
-          <svg class="w-20 h-20 transform -rotate-90" viewBox="0 0 36 36">
-            <!-- Background circle -->
-            <path class="text-gray-200" stroke="currentColor" stroke-width="2.5" fill="none" 
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
-            <!-- Purple segment -->
-            <path class="text-purple-500" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round"
-                  stroke-dasharray="70, 100" stroke-dashoffset="0"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
-            <!-- Orange segment -->
-            <path class="text-orange-400" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round"
-                  stroke-dasharray="15, 100" stroke-dashoffset="-70"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
-          </svg>
-          <div class="absolute inset-0 flex items-center justify-center">
-            <div class="text-center">
-              <div class="text-lg font-bold text-gray-900">100</div>
-              <div class="text-xs text-gray-500">Overall</div>
-            </div>
+        <div :id="chartId" class="w-28 h-28"></div>
+        <div class="absolute inset-0 flex items-center justify-center">
+          <div class="text-center">
+            <div class="text-xl font-bold text-gray-900">{{ totalDevices }}</div>
+            <div class="text-sm text-gray-500">Overall</div>
           </div>
         </div>
       </div>
 
       <!-- Device Stats -->
       <div class="flex-1 space-y-2">
-        <div class="flex items-center justify-between">
+        <div 
+          v-for="device in devices" 
+          :key="device.name"
+          class="flex items-center justify-between"
+        >
           <div class="flex items-center">
-            <div class="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
-            <span class="text-sm text-gray-600">Macbook</span>
+            <div 
+              class="w-2 h-2 rounded-full mr-2" 
+              :style="{ backgroundColor: device.color }"
+            ></div>
+            <span class="text-sm text-gray-600">{{ device.name }}</span>
           </div>
-          <span class="text-sm font-semibold text-gray-900">80</span>
-        </div>
-        
-        <div class="flex items-center justify-between">
-          <div class="flex items-center">
-            <div class="w-2 h-2 bg-orange-400 rounded-full mr-2"></div>
-            <span class="text-sm text-gray-600">Keyboard</span>
-          </div>
-          <span class="text-sm font-semibold text-gray-900">13</span>
-        </div>
-        
-        <div class="flex items-center justify-between">
-          <div class="flex items-center">
-            <div class="w-2 h-2 bg-gray-300 rounded-full mr-2"></div>
-            <span class="text-sm text-gray-600">Headphones</span>
-          </div>
-          <span class="text-sm font-semibold text-gray-900">07</span>
+          <span class="text-sm font-semibold text-gray-900">{{ device.value.toString().padStart(2, '0') }}</span>
         </div>
       </div>
     </div>
@@ -63,11 +40,164 @@
 
 <script>
 import { MoreHorizontal } from 'lucide-vue-next'
+import * as am5 from "@amcharts/amcharts5"
+import * as am5percent from "@amcharts/amcharts5/percent"
+import am5themes_Animated from "@amcharts/amcharts5/themes/Animated"
 
 export default {
   name: 'DevicesCard',
   components: {
     MoreHorizontal
+  },
+  props: {
+    devices: {
+      type: Array,
+      default: () => [
+        { name: 'Macbook', value: 80, color: '#8b5cf6' },
+        { name: 'Keyboard', value: 13, color: '#fb923c' },
+        { name: 'Headphones', value: 7, color: '#d1d5db' }
+      ]
+    }
+  },
+  data() {
+    return {
+      chartId: `devices-chart-${Math.random().toString(36).substr(2, 9)}`,
+      chart: null
+    }
+  },
+  computed: {
+    totalDevices() {
+      return this.devices.reduce((sum, device) => sum + device.value, 0)
+    },
+    chartData() {
+      return this.devices.map(device => ({
+        category: device.name,
+        value: device.value,
+        color: device.color
+      }))
+    }
+  },
+  mounted() {
+    this.createChart()
+  },
+  beforeUnmount() {
+    this.disposeChart()
+  },
+  methods: {
+    createChart() {
+      // Create root element
+      let root = am5.Root.new(this.chartId)
+      
+      // Set themes
+      root.setThemes([am5themes_Animated.new(root)])
+      
+      // Create chart - semicircle configuration with proper positioning
+      let chart = root.container.children.push(am5percent.PieChart.new(root, {
+        startAngle: 180,
+        endAngle: 360,
+        layout: root.verticalLayout,
+        innerRadius: am5.percent(50), // Increased from 65% to make ring thicker
+        radius: am5.percent(90),
+        y: am5.percent(-10) // Move chart up to center the semicircle
+      }))
+      
+      // Create background track first (gray semicircle)
+      let backgroundSeries = chart.series.push(am5percent.PieSeries.new(root, {
+        valueField: "value",
+        categoryField: "category", 
+        startAngle: 180,
+        endAngle: 360,
+        innerRadius: am5.percent(50),
+        radius: am5.percent(90)
+      }))
+      
+      backgroundSeries.slices.template.setAll({
+        fill: am5.color("#f1f5f9"),
+        stroke: am5.color("#ffffff"),
+        strokeWidth: 2,
+        cornerRadius: 6
+      })
+      
+      backgroundSeries.labels.template.set("visible", false)
+      backgroundSeries.ticks.template.set("visible", false)
+      
+      // Set background data (full semicircle)
+      backgroundSeries.data.setAll([
+        { category: "background", value: 100 }
+      ])
+      
+      // Create main data series
+      let series = chart.series.push(am5percent.PieSeries.new(root, {
+        valueField: "value",
+        categoryField: "category",
+        startAngle: 180,
+        endAngle: 360,
+        innerRadius: am5.percent(50),
+        radius: am5.percent(90)
+      }))
+      
+      // Remove labels and ticks
+      series.labels.template.set("visible", false)
+      series.ticks.template.set("visible", false)
+      
+      // Set slice properties for rounded ends and thicker ring
+      series.slices.template.setAll({
+        cornerRadius: 6,
+        stroke: am5.color("#ffffff"),
+        strokeWidth: 2
+      })
+      
+      // Configure colors to match each device
+      series.slices.template.adapters.add("fill", (fill, target) => {
+        const dataItem = target.dataItem
+        if (dataItem) {
+          const color = dataItem.dataContext.color
+          return am5.color(color)
+        }
+        return fill
+      })
+      
+      // Set actual data
+      series.data.setAll(this.chartData)
+      
+      // Animate on load
+      backgroundSeries.appear(800, 100)
+      series.appear(1000, 100)
+      
+      this.chart = root
+    },
+    
+    disposeChart() {
+      if (this.chart) {
+        this.chart.dispose()
+      }
+    }
+  },
+  watch: {
+    devices: {
+      handler() {
+        if (this.chart) {
+          this.disposeChart()
+          this.$nextTick(() => {
+            this.createChart()
+          })
+        }
+      },
+      deep: true
+    }
   }
 }
 </script>
+
+<style scoped>
+/* Ensure proper chart container sizing and positioning */
+[id*="devices-chart"] {
+  width: 112px !important;
+  height: 112px !important;
+}
+
+/* Center the chart content */
+[id*="devices-chart"] .am5-container {
+  overflow: visible;
+}
+</style>
